@@ -1,0 +1,34 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "compatibility_date": "2026-07-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "durable_objects": {
+    "bindings": [
+      {
+        "class_name": "GmailMcp",
+        "name": "MCP_OBJECT"
+      }
+    ]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "GMAIL_KV",
+      "id": "3b43aeb55ec641f9bbd2e2623d24a143"
+    },
+    {
+      "binding": "OAUTH_KV",
+      "id": "bffa71eb4dc54bc8be7b46a4b7dc89bd"
+    }
+  ],
+  "main": "src/index.ts",
+  "migrations": [
+    {
+      "new_sqlite_classes": ["GmailMcp"],
+      "tag": "v1"
+    }
+  ],
+  "name": "gmail-mcp",
+  "vars": {
+    "ACCOUNTS": "candix,personal"
+  }
+}
