@@ -376,6 +376,16 @@ const defaultHandler = {
         });
       }
 
+      if (url.pathname === "/icon.png") {
+        /* The embedded ICO holds a single PNG entry after the 22-byte header. */
+        return new Response(faviconBytes().subarray(22), {
+          headers: {
+            "cache-control": "public, max-age=86400",
+            "content-type": "image/png",
+          },
+        });
+      }
+
       if (url.pathname === "/") {
         return new Response(
           '<!doctype html><html><head><meta charset="utf-8"><title>gmail-mcp</title><link rel="icon" href="/favicon.ico" sizes="256x256"></head><body>gmail-mcp</body></html>',

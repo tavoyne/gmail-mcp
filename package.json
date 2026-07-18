@@ -1,12 +1,4 @@
 {
-  "name": "gmail-mcp",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "deploy": "wrangler deploy",
-    "dev": "wrangler dev",
-    "typecheck": "tsc --noEmit"
-  },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.8.2",
     "@modelcontextprotocol/sdk": "^1.16.0",
@@ -17,5 +9,13 @@
     "prettier": "^3.9.5",
     "typescript": "^5.8.0",
     "wrangler": "^4.24.0"
-  }
+  },
+  "name": "gmail-mcp",
+  "private": true,
+  "scripts": {
+    "deploy": "wrangler deploy",
+    "dev": "wrangler dev",
+    "typecheck": "tsc --noEmit"
+  },
+  "type": "module"
 }
