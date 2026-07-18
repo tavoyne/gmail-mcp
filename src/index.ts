@@ -388,7 +388,7 @@ const defaultHandler = {
 
       if (url.pathname === "/") {
         return new Response(
-          '<!doctype html><html><head><meta charset="utf-8"><title>gmail-mcp</title><link rel="icon" href="/favicon.ico" sizes="256x256"></head><body>gmail-mcp</body></html>',
+          '<!doctype html><html><head><meta charset="utf-8"><title>gmail-mcp</title><link rel="icon" href="/icon.png" sizes="256x256" type="image/png"></head><body>gmail-mcp</body></html>',
           { headers: { "content-type": "text/html; charset=utf-8" } },
         );
       }
