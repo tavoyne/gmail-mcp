@@ -10,9 +10,11 @@
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.8.2",
     "@modelcontextprotocol/sdk": "^1.16.0",
-    "agents": "^0.1.0"
+    "agents": "^0.1.0",
+    "remeda": "^2.39.0"
   },
   "devDependencies": {
+    "prettier": "^3.9.5",
     "typescript": "^5.8.0",
     "wrangler": "^4.24.0"
   }

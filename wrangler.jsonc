@@ -6,29 +6,29 @@
     "bindings": [
       {
         "class_name": "GmailMcp",
-        "name": "MCP_OBJECT"
-      }
-    ]
+        "name": "MCP_OBJECT",
+      },
+    ],
   },
   "kv_namespaces": [
     {
       "binding": "GMAIL_KV",
-      "id": "3b43aeb55ec641f9bbd2e2623d24a143"
+      "id": "3b43aeb55ec641f9bbd2e2623d24a143",
     },
     {
       "binding": "OAUTH_KV",
-      "id": "bffa71eb4dc54bc8be7b46a4b7dc89bd"
-    }
+      "id": "bffa71eb4dc54bc8be7b46a4b7dc89bd",
+    },
   ],
   "main": "src/index.ts",
   "migrations": [
     {
       "new_sqlite_classes": ["GmailMcp"],
-      "tag": "v1"
-    }
+      "tag": "v1",
+    },
   ],
   "name": "gmail-mcp",
   "vars": {
-    "ACCOUNTS": "candix,personal"
-  }
+    "ACCOUNTS": "candix,personal",
+  },
 }
