@@ -20,7 +20,7 @@ import { buildTools } from "./schemas";
 
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
 
-const ORIGIN = "https://gmail-mcp.theophile.workers.dev";
+const ORIGIN = "https://gmail-mcp.net";
 
 /* -----------------------------------------------------------------------------
 /* faviconBytes

@@ -28,7 +28,14 @@
     }
   ],
   "name": "gmail-mcp",
+  "routes": [
+    {
+      "custom_domain": true,
+      "pattern": "gmail-mcp.net"
+    }
+  ],
   "vars": {
     "ACCOUNTS": "candix,personal"
-  }
+  },
+  "workers_dev": true
 }
