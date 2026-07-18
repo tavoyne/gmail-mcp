@@ -388,7 +388,7 @@ const defaultHandler = {
 
       if (url.pathname === "/") {
         return new Response(
-          '<!doctype html><html><head><meta charset="utf-8"><title>gmail-mcp</title><link rel="icon" href="/icon.png" sizes="256x256" type="image/png"></head><body>gmail-mcp</body></html>',
+          '<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Personal multi-account Gmail MCP server."><title>gmail-mcp</title><link rel="icon" href="/icon.png" sizes="256x256" type="image/png"></head><body style="font-family:sans-serif;max-width:28rem;margin:4rem auto"><h1>gmail-mcp</h1><p>A personal Model Context Protocol server exposing multiple Gmail accounts to one MCP client connection.</p></body></html>',
           { headers: { "content-type": "text/html; charset=utf-8" } },
         );
       }
