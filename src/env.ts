@@ -1,5 +1,7 @@
 import type { OAuthHelpers } from "@cloudflare/workers-oauth-provider";
 
+export const ORIGIN = "https://gmail-mcp.net";
+
 export interface Env {
   /* Comma-separated account aliases, e.g. "candix,personal". Per alias, the
      GOOGLE_CLIENT_ID_<ALIAS> and GOOGLE_CLIENT_SECRET_<ALIAS> secrets must be

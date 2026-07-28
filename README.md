@@ -1,10 +1,11 @@
 # gmail-mcp
 
-Remote MCP server on Cloudflare Workers exposing multiple Gmail accounts to Claude through one connector. Tool names, descriptions, and response shapes replicate Anthropic's built-in Gmail connector; the only addition is a required `account` parameter on every tool (plus `account: "all"` fan-out on `search_threads`).
+Remote MCP server on Cloudflare Workers exposing multiple Gmail accounts to Claude through one connector. Tool names, descriptions, and response shapes replicate Anthropic's built-in Gmail connector; the additions are a required `account` parameter on every tool (plus `account: "all"` fan-out on `search_threads`) and `get_message_attachment`, which the built-in connector does not expose. That tool returns a short-lived signed download link rather than attachment content, so files reach disk without passing through the model's context.
 
 ## Architecture
 
 - `/mcp`: Streamable HTTP MCP endpoint. Two auth paths: MCP OAuth (what claude.ai uses; dynamic client registration + PKCE via `workers-oauth-provider`, with the `/authorize` approval page gated by `SETUP_SECRET`) or a static bearer secret (`MCP_SECRET`) for CLI clients and tests.
+- `/attachment?...&signature=<hmac>`: serves one attachment's raw bytes. `get_message_attachment` mints these links, signing account, message id, attachment id and a 10-minute expiry with `MCP_SECRET`. The link carries its own authorization so a plain `curl -o` works, and within its window it unlocks that one attachment and nothing else.
 - `/connect/<alias>?key=<SETUP_SECRET>`: browser route that runs the Google OAuth flow for one account and stores its refresh token in KV.
 - `/oauth/callback`: Google OAuth redirect target.
 - Tokens live in the `GMAIL_KV` namespace (`refresh:<alias>` plus a short-lived `access:<alias>` cache). Scope is `gmail.modify`: read, search, labels, drafts; no send.

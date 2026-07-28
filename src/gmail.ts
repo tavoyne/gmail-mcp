@@ -139,7 +139,10 @@ export const storeTokens = async (
 
 /* In-memory layer over KV so a 50-wide Promise.all fan-out does one token
    lookup, and concurrent cold starts share a single refresh exchange. */
-const accessTokenCache = new Map<string, { expiresAt: number; token: string }>();
+const accessTokenCache = new Map<
+  string,
+  { expiresAt: number; token: string }
+>();
 
 const pendingTokenFetches = new Map<string, Promise<string>>();
 
@@ -300,6 +303,12 @@ export interface GmailLabel {
   type?: string;
 }
 
+export interface GmailAttachment {
+  attachmentId?: string;
+  data?: string;
+  size?: number;
+}
+
 export type MessageFormat = "FULL_CONTENT" | "METADATA_ONLY" | "MINIMAL";
 
 /* -----------------------------------------------------------------------------
@@ -343,8 +352,8 @@ const isoDate = (internalDate: string | undefined): string | undefined => {
 /* decodeBody
 /* -------------------------------------------------------------------------- */
 
-/** Decodes a base64url Gmail body part into a UTF-8 string. */
-export const decodeBody = (data: string): string => {
+/** Decodes base64url, as Gmail encodes both body parts and attachment bytes. */
+export const decodeBase64Url = (data: string): Uint8Array => {
   const binary = atob(data.replace(/-/g, "+").replace(/_/g, "/"));
 
   const bytes = new Uint8Array(binary.length);
@@ -353,7 +362,12 @@ export const decodeBody = (data: string): string => {
     bytes[idx] = binary.charCodeAt(idx);
   }
 
-  return new TextDecoder().decode(bytes);
+  return bytes;
+};
+
+/** Decodes a base64url Gmail body part into a UTF-8 string. */
+export const decodeBody = (data: string): string => {
+  return new TextDecoder().decode(decodeBase64Url(data));
 };
 
 /* -----------------------------------------------------------------------------
@@ -373,7 +387,9 @@ export interface CollectedParts {
 }
 
 /** Walks a MIME part tree, collecting bodies and attachment metadata. */
-export const collectParts = (payload: GmailPart | undefined): CollectedParts => {
+export const collectParts = (
+  payload: GmailPart | undefined,
+): CollectedParts => {
   const collected: CollectedParts = { attachments: [] };
 
   const visit = (part: GmailPart | undefined): void => {

@@ -12,15 +12,19 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { McpAgent } from "agents/mcp";
 
-import { accountAliases } from "./env";
+import { accountAliases, ORIGIN } from "./env";
 import { FAVICON_BASE64 } from "./favicon";
-import { credentialsFor, exchangeToken, GmailError, storeTokens } from "./gmail";
-import { callTool } from "./handlers";
+import {
+  credentialsFor,
+  exchangeToken,
+  GmailError,
+  storeTokens,
+} from "./gmail";
+import { attachmentBytes, callTool } from "./handlers";
 import { buildTools } from "./schemas";
+import { verifyAttachmentUrl } from "./signing";
 
 const GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify";
-
-const ORIGIN = "https://gmail-mcp.net";
 
 /* -----------------------------------------------------------------------------
 /* faviconBytes
@@ -133,7 +137,8 @@ const connect = (request: Request, env: Env): Response => {
 
   const key = url.searchParams.get("key");
 
-  if (key !== env.SETUP_SECRET) return new Response("Forbidden", { status: 403 });
+  if (key !== env.SETUP_SECRET)
+    return new Response("Forbidden", { status: 403 });
 
   if (!accountAliases(env).includes(alias)) {
     return new Response(
@@ -264,7 +269,9 @@ const escapeHtml = (value: string): string => {
 
 const oauthHelpers = (env: Env): OAuthHelpers => {
   if (env.OAUTH_PROVIDER === void 0) {
-    throw new Error("OAUTH_PROVIDER is only available on OAuthProvider routes.");
+    throw new Error(
+      "OAUTH_PROVIDER is only available on OAuthProvider routes.",
+    );
   }
 
   return env.OAUTH_PROVIDER;
@@ -347,6 +354,42 @@ const authorizeSubmit = async (
 };
 
 /* -----------------------------------------------------------------------------
+/* attachment
+/* -------------------------------------------------------------------------- */
+
+/* Serves one attachment's raw bytes to whoever holds a valid signature. The
+   link carries its own proof so a plain curl works, with no MCP session and no
+   Google credentials on the client side. */
+const attachment = async (request: Request, env: Env): Promise<Response> => {
+  const verified = await verifyAttachmentUrl(
+    env,
+    new URL(request.url),
+    Date.now(),
+  );
+
+  if (!verified.ok) {
+    return new Response(
+      verified.reason === "expired"
+        ? "Download link has expired; request a new one."
+        : "Invalid download link.",
+      { status: verified.reason === "expired" ? 410 : 403 },
+    );
+  }
+
+  const bytes = await attachmentBytes(env, verified.ref);
+
+  return new Response(bytes, {
+    headers: {
+      /* The caller names the file; it already knows the filename and type. */
+      "content-length": String(bytes.byteLength),
+      "content-type": "application/octet-stream",
+      /* Signed links are single-purpose and short-lived; never cache them. */
+      "cache-control": "no-store",
+    },
+  });
+};
+
+/* -----------------------------------------------------------------------------
 /* defaultHandler
 /* -------------------------------------------------------------------------- */
 
@@ -355,6 +398,8 @@ const defaultHandler = {
     const url = new URL(request.url);
 
     try {
+      if (url.pathname === "/attachment") return await attachment(request, env);
+
       if (url.pathname === "/authorize") {
         return request.method === "POST"
           ? await authorizeSubmit(request, env)

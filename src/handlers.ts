@@ -1,5 +1,6 @@
 import type { Env } from "./env";
 import type {
+  GmailAttachment,
   GmailLabel,
   GmailLabelColor,
   GmailMessage,
@@ -8,6 +9,7 @@ import type {
   MessageFormat,
 } from "./gmail";
 import type { DraftAttachment } from "./mime";
+import type { AttachmentRef, SignedAttachmentUrl } from "./signing";
 
 import { isString } from "remeda";
 
@@ -15,6 +17,7 @@ import { accountAliases } from "./env";
 import {
   assertKnownAlias,
   collectParts,
+  decodeBase64Url,
   GmailError,
   gmailFetch,
   headerValue,
@@ -23,6 +26,7 @@ import {
   parseAddresses,
 } from "./gmail";
 import { buildDraftMime } from "./mime";
+import { signAttachmentUrl } from "./signing";
 
 type Args = Record<string, unknown>;
 
@@ -138,10 +142,7 @@ const searchThreads = async (
 
   const params = new URLSearchParams({ maxResults: String(pageSize) });
 
-  const q = [
-    query,
-    query?.includes("in:draft") === true ? void 0 : "-in:draft",
-  ]
+  const q = [query, query?.includes("in:draft") === true ? void 0 : "-in:draft"]
     .filter(isString)
     .join(" ");
 
@@ -239,6 +240,55 @@ const getMessage = async (
   );
 
   return mapMessage(message, format);
+};
+
+/* -----------------------------------------------------------------------------
+/* getMessageAttachment
+/* -------------------------------------------------------------------------- */
+
+/* Returns a download link rather than the bytes: an agent curls it to disk, so
+   the file never enters the model's context and no size ceiling applies. The
+   caller already holds the filename and MIME type, which arrived alongside the
+   attachment id, so nothing here needs to read the message. */
+const getMessageAttachment = async (
+  env: Env,
+  alias: string,
+  args: Args,
+): Promise<SignedAttachmentUrl> => {
+  const attachmentId = requiredString(args, "attachmentId");
+
+  const messageId = requiredString(args, "messageId");
+
+  return signAttachmentUrl(
+    env,
+    { account: alias, attachmentId, messageId },
+    Date.now(),
+  );
+};
+
+/* -----------------------------------------------------------------------------
+/* attachmentBytes
+/* -------------------------------------------------------------------------- */
+
+/** Fetches raw attachment bytes, for the signed download route to serve. */
+export const attachmentBytes = async (
+  env: Env,
+  ref: AttachmentRef,
+): Promise<Uint8Array> => {
+  const attachment = await gmailFetch<GmailAttachment>(
+    env,
+    ref.account,
+    `/messages/${ref.messageId}/attachments/${ref.attachmentId}`,
+  );
+
+  if (attachment.data === void 0) {
+    throw new GmailError(
+      `Gmail returned no content for attachment "${ref.attachmentId}".`,
+      502,
+    );
+  }
+
+  return decodeBase64Url(attachment.data);
 };
 
 /* -----------------------------------------------------------------------------
@@ -735,6 +785,10 @@ export const callTool = async (
 
     case "get_message": {
       return getMessage(env, account, args);
+    }
+
+    case "get_message_attachment": {
+      return getMessageAttachment(env, account, args);
     }
 
     case "get_thread": {

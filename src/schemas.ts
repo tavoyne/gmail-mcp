@@ -1,12 +1,14 @@
 import type { Tool } from "@modelcontextprotocol/sdk/types.js";
 
 /* Tool names, descriptions, and parameter schemas replicate Anthropic's built-in
-   Gmail connector word for word; the only addition is the `account` parameter. */
+   Gmail connector word for word; the additions are the `account` parameter and
+   `get_message_attachment`, which the built-in connector does not expose and
+   which returns a signed download link rather than attachment content. */
 
 const LABEL_COLOR_PALETTE =
   "# 000000, #434343, #666666, #999999, #cccccc, #efefef, #f3f3f3, #ffffff, # fb4c2f, #ffad47, #fad165, #16a766, #43d692, #4a86e8, #a479e2, #f691b3, # f6c5be, #ffe6c7, #fef1d1, #b9e4d0, #c6f3de, #c9daf8, #e4d7f5, #fcdee8, # efa093, #ffd6a2, #fce8b3, #89d3b2, #a0eac9, #a4c2f4, #d0bcf1, #fbc8d9, # e66550, #ffbc6b, #fcda83, #44b984, #68dfa9, #6d9eeb, #b694e8, #f7a7c0, # cc3a21, #eaa041, #f2c960, #149e60, #3dc789, #3c78d8, #8e63ce, #e07798, # ac2b16, #cf8933, #d5ae49, #0b804b, #2a9c68, #285bac, #653e9b, #b65775, # 822111, #a46a21, #aa8831, #076239, #1a764d, #1c4587, #41236d, #83334c, # 464646, #e7e7e7, #0d3472, #b6cff5, #0d3b44, #98d7e4, #3d188e, #e3d7ff, # 711a36, #fbd3e0, #8a1c0a, #f2b2a8, #7a2e0b, #ffc8af, #7a4706, #ffdeb5, # 594c05, #fbe983, #684e07, #fdedc1, #0b4f30, #b3efd3, #04502e, #a2dcc1, # c2c2c2, #4986e7, #2da2bb, #b99aff, #994a64, #f691b2, #ff7537, #ffad46, # 662e37, #ebdbde, #cca6ac, #094228, #42d692, #16a765";
 
-/** Builds the 13 connector-identical tool definitions for the given aliases. */
+/** Builds the 14 tool definitions for the given aliases. */
 export const buildTools = (aliases: string[]): Tool[] => {
   const accountProperty = {
     description: `Required. The Gmail account to operate on. One of: ${aliases.join(", ")}.`,
@@ -28,7 +30,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
         properties: {
           account: searchAccountProperty,
           includeTrash: {
-            description: "Optional. Include drafts from TRASH in the results. Defaults to false.",
+            description:
+              "Optional. Include drafts from TRASH in the results. Defaults to false.",
             type: "boolean",
           },
           pageSize: {
@@ -48,8 +51,13 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "string",
           },
           view: {
-            description: "Optional. Controls the fields populated for threads in the thread list.",
-            enum: ["THREAD_VIEW_UNSPECIFIED", "THREAD_VIEW_METADATA_ONLY", "THREAD_VIEW_MINIMAL"],
+            description:
+              "Optional. Controls the fields populated for threads in the thread list.",
+            enum: [
+              "THREAD_VIEW_UNSPECIFIED",
+              "THREAD_VIEW_METADATA_ONLY",
+              "THREAD_VIEW_MINIMAL",
+            ],
             type: "string",
             "x-google-enum-descriptions": [
               "Maps to DRAFT_VIEW_FULL for backward compatibility.",
@@ -73,7 +81,12 @@ export const buildTools = (aliases: string[]): Tool[] => {
           messageFormat: {
             description:
               "Optional. Specifies the format of the messages returned within the thread. Defaults to FULL_CONTENT. Note: If you need body content or attachments, use FULL_CONTENT. When using MINIMAL, the plaintext_body and attachment_ids fields will not be populated. If you are unsure which format to use, rely on the default behavior by using FULL_CONTENT.",
-            enum: ["MESSAGE_FORMAT_UNSPECIFIED", "MINIMAL", "FULL_CONTENT", "METADATA_ONLY"],
+            enum: [
+              "MESSAGE_FORMAT_UNSPECIFIED",
+              "MINIMAL",
+              "FULL_CONTENT",
+              "METADATA_ONLY",
+            ],
             type: "string",
             "x-google-enum-descriptions": [
               "Defaults to FULL_CONTENT.",
@@ -83,7 +96,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             ],
           },
           threadId: {
-            description: "Required. The unique identifier of the thread to fetch.",
+            description:
+              "Required. The unique identifier of the thread to fetch.",
             type: "string",
           },
         },
@@ -100,8 +114,14 @@ export const buildTools = (aliases: string[]): Tool[] => {
         properties: {
           account: accountProperty,
           messageFormat: {
-            description: "Optional. Specifies the format of the message returned. Defaults to FULL_CONTENT.",
-            enum: ["MESSAGE_FORMAT_UNSPECIFIED", "MINIMAL", "FULL_CONTENT", "METADATA_ONLY"],
+            description:
+              "Optional. Specifies the format of the message returned. Defaults to FULL_CONTENT.",
+            enum: [
+              "MESSAGE_FORMAT_UNSPECIFIED",
+              "MINIMAL",
+              "FULL_CONTENT",
+              "METADATA_ONLY",
+            ],
             type: "string",
             "x-google-enum-descriptions": [
               "Defaults to FULL_CONTENT.",
@@ -111,11 +131,35 @@ export const buildTools = (aliases: string[]): Tool[] => {
             ],
           },
           messageId: {
-            description: "Required. The unique identifier of the message to fetch.",
+            description:
+              "Required. The unique identifier of the message to fetch.",
             type: "string",
           },
         },
         required: ["account", "messageId"],
+        type: "object",
+      },
+    },
+    {
+      name: "get_message_attachment",
+      description:
+        "Returns a temporary download link for a single attachment in the authenticated user's Gmail account. Use this tool after `get_message` or `get_thread` has reported an attachment, passing the message ID and the attachment ID from the `attachments` field. The response contains `url` and `expiresAt`. The link is valid for 10 minutes and carries its own authorization, so fetch it with a plain HTTP GET and save it straight to disk, for example `curl -o <path> '<url>'`. The filename and MIME type are not repeated here because `get_message` and `get_thread` already return them next to the attachment ID; use those to choose the path. Attachment content is never returned inline and no size limit applies, so the file lands on disk without entering the conversation.",
+      inputSchema: {
+        description: "Request message for GetMessageAttachment RPC.",
+        properties: {
+          account: accountProperty,
+          attachmentId: {
+            description:
+              "Required. The unique identifier of the attachment to fetch, as returned in the `attachments` or `attachmentIds` field of `get_message` or `get_thread`.",
+            type: "string",
+          },
+          messageId: {
+            description:
+              "Required. The unique identifier of the message that contains the attachment.",
+            type: "string",
+          },
+        },
+        required: ["account", "messageId", "attachmentId"],
         type: "object",
       },
     },
@@ -129,7 +173,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             description: "Represents an attachment to be included in an email.",
             properties: {
               content: {
-                description: "Required. The base64-encoded content of the attachment.",
+                description:
+                  "Required. The base64-encoded content of the attachment.",
                 format: "byte",
                 type: "string",
               },
@@ -196,7 +241,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "string",
           },
           subject: {
-            description: "Optional. The subject line of the email. Defaults to empty if not provided.",
+            description:
+              "Optional. The subject line of the email. Defaults to empty if not provided.",
             type: "string",
           },
           to: {
@@ -235,8 +281,13 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "string",
           },
           view: {
-            description: "Optional. Controls the fields populated for drafts in the draft list.",
-            enum: ["DRAFT_VIEW_UNSPECIFIED", "DRAFT_VIEW_METADATA_ONLY", "DRAFT_VIEW_FULL"],
+            description:
+              "Optional. Controls the fields populated for drafts in the draft list.",
+            enum: [
+              "DRAFT_VIEW_UNSPECIFIED",
+              "DRAFT_VIEW_METADATA_ONLY",
+              "DRAFT_VIEW_FULL",
+            ],
             type: "string",
             "x-google-enum-descriptions": [
               "Maps to DRAFT_VIEW_FULL for backward compatibility.",
@@ -263,7 +314,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "integer",
           },
           pageToken: {
-            description: "Optional. Page token to retrieve a specific page of results in the list.",
+            description:
+              "Optional. Page token to retrieve a specific page of results in the list.",
             type: "string",
           },
         },
@@ -328,7 +380,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "array",
           },
           messageId: {
-            description: "Required. The ID of the message to add the labels to.",
+            description:
+              "Required. The ID of the message to add the labels to.",
             type: "string",
           },
         },
@@ -351,7 +404,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "array",
           },
           threadId: {
-            description: "Required. The unique identifier of the thread to add labels to.",
+            description:
+              "Required. The unique identifier of the thread to add labels to.",
             type: "string",
           },
         },
@@ -374,7 +428,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "array",
           },
           messageId: {
-            description: "Required. The ID of the message to remove the labels from.",
+            description:
+              "Required. The ID of the message to remove the labels from.",
             type: "string",
           },
         },
@@ -397,7 +452,8 @@ export const buildTools = (aliases: string[]): Tool[] => {
             type: "array",
           },
           threadId: {
-            description: "Required. The unique identifier of the thread to remove labels from.",
+            description:
+              "Required. The unique identifier of the thread to remove labels from.",
             type: "string",
           },
         },
@@ -417,7 +473,11 @@ export const buildTools = (aliases: string[]): Tool[] => {
             description: "Required. The sensitive label option to add.",
             enum: ["LABEL_OPTION_UNSPECIFIED", "TRASH", "SPAM"],
             type: "string",
-            "x-google-enum-descriptions": ["Unspecified label option.", "Trash label.", "Spam label."],
+            "x-google-enum-descriptions": [
+              "Unspecified label option.",
+              "Trash label.",
+              "Spam label.",
+            ],
           },
           messageId: {
             description: "Required. The ID of the message to add the label to.",
@@ -440,7 +500,11 @@ export const buildTools = (aliases: string[]): Tool[] => {
             description: "Required. The sensitive label option to add.",
             enum: ["LABEL_OPTION_UNSPECIFIED", "TRASH", "SPAM"],
             type: "string",
-            "x-google-enum-descriptions": ["Unspecified label option.", "Trash label.", "Spam label."],
+            "x-google-enum-descriptions": [
+              "Unspecified label option.",
+              "Trash label.",
+              "Spam label.",
+            ],
           },
           threadId: {
             description: "Required. The ID of the thread to add the label to.",
