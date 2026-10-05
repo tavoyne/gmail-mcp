@@ -90,12 +90,14 @@ export const signAttachmentUrl = async (
     attachmentId: ref.attachmentId,
     expires: String(expires),
     messageId: ref.messageId,
-    signature: hex(signature),
   });
 
   return {
     expiresAt: `${new Date(expires * 1000).toISOString().slice(0, 19)}Z`,
-    url: `${ORIGIN}/attachment?${params.toString()}`,
+    /* The signature rides in the path: agent hosts such as OpenClaw mask query
+       params named like secrets (signature, sig, token...) before the model
+       sees the link, which would leave it holding a dead URL. */
+    url: `${ORIGIN}/attachment/${hex(signature)}?${params.toString()}`,
   };
 };
 
@@ -121,7 +123,9 @@ export const verifyAttachmentUrl = async (
 
   const messageId = url.searchParams.get("messageId");
 
-  const signature = url.searchParams.get("signature");
+  const signature = url.pathname.startsWith("/attachment/")
+    ? url.pathname.slice("/attachment/".length)
+    : null;
 
   if (
     account === null ||

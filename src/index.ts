@@ -398,7 +398,9 @@ const defaultHandler = {
     const url = new URL(request.url);
 
     try {
-      if (url.pathname === "/attachment") return await attachment(request, env);
+      if (url.pathname.startsWith("/attachment/")) {
+        return await attachment(request, env);
+      }
 
       if (url.pathname === "/authorize") {
         return request.method === "POST"

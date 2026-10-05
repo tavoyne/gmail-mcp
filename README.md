@@ -5,7 +5,7 @@ Remote MCP server on Cloudflare Workers exposing multiple Gmail accounts to Clau
 ## Architecture
 
 - `/mcp`: Streamable HTTP MCP endpoint. Two auth paths: MCP OAuth (what claude.ai uses; dynamic client registration + PKCE via `workers-oauth-provider`, with the `/authorize` approval page gated by `SETUP_SECRET`) or a static bearer secret (`MCP_SECRET`) for CLI clients and tests.
-- `/attachment?...&signature=<hmac>`: serves one attachment's raw bytes. `get_message_attachment` mints these links, signing account, message id, attachment id and a 10-minute expiry with `MCP_SECRET`. The link carries its own authorization so a plain `curl -o` works, and within its window it unlocks that one attachment and nothing else.
+- `/attachment/<hmac>?...`: serves one attachment's raw bytes. `get_message_attachment` mints these links, signing account, message id, attachment id and a 10-minute expiry with `MCP_SECRET`. The link carries its own authorization so a plain `curl -o` works, and within its window it unlocks that one attachment and nothing else. The signature sits in the path, not a query param, because agent hosts such as OpenClaw mask secret-looking query params before the model sees the link.
 - `/connect/<alias>?key=<SETUP_SECRET>`: browser route that runs the Google OAuth flow for one account and stores its refresh token in KV.
 - `/oauth/callback`: Google OAuth redirect target.
 - Tokens live in the `GMAIL_KV` namespace (`refresh:<alias>` plus a short-lived `access:<alias>` cache). Scope is `gmail.modify`: read, search, labels, drafts; no send.
