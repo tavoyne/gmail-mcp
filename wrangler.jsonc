@@ -27,8 +27,12 @@
       "tag": "v1"
     }
   ],
-  "name": "gmail-mcp",
+  "name": "candix-gmail",
   "routes": [
+    {
+      "custom_domain": true,
+      "pattern": "candix-gmail.dev"
+    },
     {
       "custom_domain": true,
       "pattern": "gmail-mcp.net"
